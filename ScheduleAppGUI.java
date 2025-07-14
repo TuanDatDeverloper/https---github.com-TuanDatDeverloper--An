@@ -9,6 +9,10 @@ import java.util.Date;
 import java.time.LocalDate; // Add missing import for LocalDate
 
 public class ScheduleAppGUI extends JFrame {
+    // Đảm bảo các biến được khai báo ở phạm vi lớp để có thể sử dụng trong các phương thức khác
+    private JComboBox<String> repeatComboBox;
+    private JSpinner reminderSpinner;
+
     public ScheduleAppGUI() {
         setTitle("Tên App");
         setSize(1440, 960);
@@ -269,7 +273,7 @@ public class ScheduleAppGUI extends JFrame {
         allDayCheck.setForeground(Color.WHITE);
         allDayCheck.setBackground(CommonConstants.SECONDARY_COLOR);
         allDayCheck.setBounds(20, 210, 100, 20);
-        allDayCheck.addActionListener(e -> {
+        allDayCheck.addActionListener(_ -> {
             boolean isAllDay = allDayCheck.isSelected();
             startTimeSpinner.setEnabled(!isAllDay);
             endTimeSpinner.setEnabled(!isAllDay);
@@ -341,6 +345,8 @@ public class ScheduleAppGUI extends JFrame {
                 String title = titleField.getText();
                 String location = locationField.getText();
                 String description = descArea.getText();
+                String repeatType = (String) repeatComboBox.getSelectedItem();
+                Integer reminderTime = (Integer) reminderSpinner.getValue();
 
                 try {
                     // Get dates and times from spinners
@@ -374,7 +380,7 @@ public class ScheduleAppGUI extends JFrame {
 
                     // Save to database
                     EventDAO eventDAO = new EventDAO();
-                    eventDAO.addEvent(title, startTimestamp, endTimestamp, description, location);
+                    eventDAO.addEvent(title, startTimestamp, endTimestamp, description, location, repeatType, reminderTime);
 
                     JOptionPane.showMessageDialog(null, "Lịch trình đã được lưu thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
 
@@ -414,8 +420,82 @@ public class ScheduleAppGUI extends JFrame {
         });
         eventDetailPanel.add(deleteBtn);
 
-        add(eventDetailPanel, BorderLayout.EAST);
-        // ==================================================================
+        // Thêm các thành phần giao diện cho lặp lại sự kiện và nhắc nhở
+        JLabel repeatLabel = new JLabel("Repeat:");
+        repeatLabel.setForeground(Color.WHITE);
+        repeatLabel.setBounds(20, 670, 270, 20);
+        eventDetailPanel.add(repeatLabel);
+
+        String[] repeatOptions = {"None", "Daily", "Weekly", "Monthly", "Yearly"};
+        repeatComboBox = new JComboBox<>(repeatOptions);
+        repeatComboBox.setBounds(20, 700, 270, 25);
+        eventDetailPanel.add(repeatComboBox);
+
+        JLabel reminderMinutesLabel = new JLabel("Reminder (minutes before):");
+        reminderMinutesLabel.setForeground(Color.WHITE);
+        reminderMinutesLabel.setBounds(20, 740, 270, 20);
+        eventDetailPanel.add(reminderMinutesLabel);
+
+        reminderSpinner = new JSpinner(new SpinnerNumberModel(0, 0, 1440, 1)); // Tối đa 1440 phút (24 giờ)
+        reminderSpinner.setBounds(20, 770, 270, 25);
+        eventDetailPanel.add(reminderSpinner);
+
+        // Cập nhật logic nút xác nhận để lưu thông tin lặp lại và nhắc nhở
+        confirmBtn.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                String title = titleField.getText();
+                String location = locationField.getText();
+                String description = descArea.getText();
+                String repeatType = (String) repeatComboBox.getSelectedItem();
+                Integer reminderTime = (Integer) reminderSpinner.getValue();
+
+                try {
+                    // Get dates and times from spinners
+                    Date startDate = (Date) startDateSpinner.getValue();
+                    Date startTimeValue = (Date) startTimeSpinner.getValue();
+                    Date endDate = (Date) endDateSpinner.getValue();
+                    Date endTimeValue = (Date) endTimeSpinner.getValue();
+
+                    // Combine date and time
+                    Calendar startCalendar = Calendar.getInstance();
+                    startCalendar.setTime(startDate);
+
+                    Calendar startTimeCal = Calendar.getInstance();
+                    startTimeCal.setTime(startTimeValue);
+
+                    startCalendar.set(Calendar.HOUR_OF_DAY, startTimeCal.get(Calendar.HOUR_OF_DAY));
+                    startCalendar.set(Calendar.MINUTE, startTimeCal.get(Calendar.MINUTE));
+
+                    Calendar endCalendar = Calendar.getInstance();
+                    endCalendar.setTime(endDate);
+
+                    Calendar endTimeCal = Calendar.getInstance();
+                    endTimeCal.setTime(endTimeValue);
+
+                    endCalendar.set(Calendar.HOUR_OF_DAY, endTimeCal.get(Calendar.HOUR_OF_DAY));
+                    endCalendar.set(Calendar.MINUTE, endTimeCal.get(Calendar.MINUTE));
+
+                    // Create timestamps
+                    java.sql.Timestamp startTimestamp = new java.sql.Timestamp(startCalendar.getTimeInMillis());
+                    java.sql.Timestamp endTimestamp = new java.sql.Timestamp(endCalendar.getTimeInMillis());
+
+                    // Save to database
+                    EventDAO eventDAO = new EventDAO();
+                    eventDAO.addEvent(title, startTimestamp, endTimestamp, description, location, repeatType, reminderTime);
+
+                    JOptionPane.showMessageDialog(null, "Lịch trình đã được lưu thành công!", "Thành công", JOptionPane.INFORMATION_MESSAGE);
+
+                    // Refresh calendar to show new event
+                    calendarPanel.updateCalendar();
+                    calendarPanel.loadEvents();
+
+                } catch (Exception ex) {
+                    JOptionPane.showMessageDialog(null, "Đã xảy ra lỗi khi lưu lịch trình: " + ex.getMessage(), "Lỗi", JOptionPane.ERROR_MESSAGE);
+                    ex.printStackTrace(); // Print stack trace for debugging
+                }
+            }
+        });
 
         // Thêm sự kiện cho nút "Lịch trình"
         schedulePanel.addMouseListener(new java.awt.event.MouseAdapter() {

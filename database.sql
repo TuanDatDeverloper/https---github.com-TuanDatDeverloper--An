@@ -5,5 +5,7 @@ CREATE TABLE events (
     end_time DATETIME NOT NULL,
     description TEXT,
     location VARCHAR(255),
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    repeat_type ENUM('none', 'daily', 'weekly', 'monthly', 'yearly') DEFAULT 'none',
+    reminder_time INT DEFAULT NULL -- Thời gian nhắc nhở trước sự kiện (phút)
 );

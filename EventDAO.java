@@ -4,8 +4,8 @@ import java.util.List;
 
 public class EventDAO {
 
-    public void addEvent(String title, Timestamp startTime, Timestamp endTime, String description, String location) {
-        String query = "INSERT INTO events (title, start_time, end_time, description, location) VALUES (?, ?, ?, ?, ?)";
+    public void addEvent(String title, Timestamp startTime, Timestamp endTime, String description, String location, String repeatType, Integer reminderTime) {
+        String query = "INSERT INTO events (title, start_time, end_time, description, location, repeat_type, reminder_time) VALUES (?, ?, ?, ?, ?, ?, ?)";
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
 
@@ -14,6 +14,12 @@ public class EventDAO {
             statement.setTimestamp(3, endTime);
             statement.setString(4, description);
             statement.setString(5, location);
+            statement.setString(6, repeatType);
+            if (reminderTime != null) {
+                statement.setInt(7, reminderTime);
+            } else {
+                statement.setNull(7, java.sql.Types.INTEGER);
+            }
             statement.executeUpdate();
 
         } catch (SQLException e) {
@@ -36,7 +42,9 @@ public class EventDAO {
                         resultSet.getTimestamp("end_time"),
                         resultSet.getString("description"),
                         resultSet.getString("location"),
-                        resultSet.getTimestamp("created_at")
+                        resultSet.getTimestamp("created_at"),
+                        resultSet.getString("repeat_type"),
+                        resultSet.getObject("reminder_time", Integer.class)
                 );
                 events.add(event);
             }
@@ -47,8 +55,8 @@ public class EventDAO {
         return events;
     }
 
-    public void updateEvent(int id, String title, Timestamp startTime, Timestamp endTime, String description, String location) {
-        String query = "UPDATE events SET title = ?, start_time = ?, end_time = ?, description = ?, location = ? WHERE id = ?";
+    public void updateEvent(int id, String title, Timestamp startTime, Timestamp endTime, String description, String location, String repeatType, Integer reminderTime) {
+        String query = "UPDATE events SET title = ?, start_time = ?, end_time = ?, description = ?, location = ?, repeat_type = ?, reminder_time = ? WHERE id = ?";
         try (Connection connection = DatabaseConnection.getConnection();
              PreparedStatement statement = connection.prepareStatement(query)) {
 
@@ -57,7 +65,13 @@ public class EventDAO {
             statement.setTimestamp(3, endTime);
             statement.setString(4, description);
             statement.setString(5, location);
-            statement.setInt(6, id);
+            statement.setString(6, repeatType);
+            if (reminderTime != null) {
+                statement.setInt(7, reminderTime);
+            } else {
+                statement.setNull(7, java.sql.Types.INTEGER);
+            }
+            statement.setInt(8, id);
             statement.executeUpdate();
 
         } catch (SQLException e) {
